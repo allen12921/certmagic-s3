@@ -51,3 +51,55 @@ func TestIOWrap(t *testing.T) {
 		t.Errorf("Buffer should be empty, got: %v", buf)
 	}
 }
+
+func TestCleartextIO(t *testing.T) {
+	ci := &CleartextIO{}
+	
+	// Test ByteReader
+	testData := []byte("test data")
+	reader := ci.ByteReader(testData)
+	
+	result, err := io.ReadAll(&reader)
+	if err != nil {
+		t.Errorf("reading from ByteReader failed: %v", err)
+	}
+	
+	if !bytes.Equal(result, testData) {
+		t.Errorf("ByteReader data mismatch, got: %v, want: %v", result, testData)
+	}
+	
+	// Test WrapReader
+	input := bytes.NewReader(testData)
+	wrapped := ci.WrapReader(input)
+	
+	result, err = io.ReadAll(wrapped)
+	if err != nil {
+		t.Errorf("reading from WrapReader failed: %v", err)
+	}
+	
+	if !bytes.Equal(result, testData) {
+		t.Errorf("WrapReader data mismatch, got: %v, want: %v", result, testData)
+	}
+}
+
+func TestSecretBoxIOWithEmptyKey(t *testing.T) {
+	sb := &SecretBoxIO{}
+	
+	// Test with empty data
+	emptyData := []byte{}
+	reader := sb.ByteReader(emptyData)
+	
+	result, err := io.ReadAll(&reader)
+	if err != nil {
+		t.Errorf("reading empty data failed: %v", err)
+	}
+	
+	// Test decryption with empty key (should fail)
+	wrapped := sb.WrapReader(bytes.NewReader(result))
+	_, err = io.ReadAll(wrapped)
+	
+	// This should fail because the key is empty
+	if err == nil {
+		t.Errorf("decryption with empty key should fail but succeeded")
+	}
+}
